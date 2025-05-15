@@ -1,0 +1,80 @@
+import React, { useContext } from "react";
+import PropTypes from "prop-types";
+import { CurrencyContext } from "../../../contexts/Currencycontext";
+
+const CarCard = ({ images, title, price, ratings, type, isNewCar }) => {
+  const image = process.env.REACT_APP_BASE_URL + "uploads/" + images[0];
+  const { currency, convertPrice } = useContext(CurrencyContext);
+
+  return (
+    <div className='relative bg-grey rounded-3xl shadow-lg w-full max-w-xs sm:max-w-sm mx-auto'>
+      {/* Badge */}
+      {isNewCar &&(
+      <div class='absolute top-0 right-0 bg-orange-light text-white text-xs font-semibold uppercase tracking-wide  px-3 py-1 shadow-lg rounded-lg rounded-tl-none rounded-br-none'>
+      {"Nouvelle"}
+    </div>
+      )}
+
+
+      {/* Car Image */}
+      <img
+        src={image}
+        alt={title}
+        className='object-cover w-full aspect-[16/9] rounded-t-3xl'
+      />
+
+      {/* Car Details */}
+      <div className='p-4'>
+        <div className='flex flex-col sm:flex-row justify-between'>
+          {/* Title and Ratings */}
+          <div className='mb-4 sm:mb-0'>
+            <h3 className='text-lg sm:text-xl font-bold mb-2'>{title}</h3>
+            <div className='flex items-center'>
+              <span className='text-yellow-light mr-2'>
+                {"★".repeat(
+                  ratings.length > 0
+                    ? Math.round(
+                        ratings.reduce((sum, { rating }) => sum + rating, 0) /
+                          ratings.length
+                      )
+                    : 0
+                )}
+                {"☆".repeat(
+                  5 -
+                    (ratings.length > 0
+                      ? Math.round(
+                          ratings.reduce((sum, { rating }) => sum + rating, 0) /
+                            ratings.length
+                        )
+                      : 0)
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className='flex items-center'>
+            <p className='text-gray-700 text-sm sm:text-base'>
+              {convertPrice(price)} {currency}/Day
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+CarCard.propTypes = {
+  images: PropTypes.arrayOf(PropTypes.string).isRequired,
+  title: PropTypes.string.isRequired,
+  price: PropTypes.number.isRequired,
+  ratings: PropTypes.arrayOf(
+    PropTypes.shape({
+      rating: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+  type: PropTypes.string.isRequired,
+  isNewCar: PropTypes.bool.isRequired,
+};
+
+export default CarCard;
