@@ -1,10 +1,12 @@
 import React, { useContext } from "react";
 import PropTypes from "prop-types";
 import { CurrencyContext } from "../../../contexts/Currencycontext";
+import { useParams } from "react-router-dom";
 
-const CarCard = ({ images, title, price, ratings, type, isNewCar }) => {
+const CarCard = ({ images, title, price, ratings, type, isNewCar, categories }) => {
   const image = process.env.REACT_APP_BASE_URL + "uploads/" + images[0];
   const { currency, convertPrice } = useContext(CurrencyContext);
+  const { category } = useParams();
 
   return (
     <div className='relative bg-grey rounded-3xl shadow-lg w-full max-w-xs sm:max-w-sm mx-auto'>
@@ -55,7 +57,18 @@ const CarCard = ({ images, title, price, ratings, type, isNewCar }) => {
           {/* Price */}
           <div className='flex items-center'>
             <p className='text-gray-700 text-sm sm:text-base'>
-              {convertPrice(price)} {currency}/Day
+              {categories && categories.length > 0 ? (
+                // Display price based on category if available
+                categories.find(cat => cat.categoryType === category) ? (
+                  <>{convertPrice(categories.find(cat => cat.categoryType === category).price)} {currency}/Day</>
+                ) : (
+                  // Fallback to first category price if selected category not found
+                  <>{convertPrice(categories[0].price)} {currency}/Day</>
+                )
+              ) : (
+                // Fallback to legacy price field
+                <>{convertPrice(price)} {currency}/Day</>
+              )}
             </p>
           </div>
         </div>
@@ -67,7 +80,7 @@ const CarCard = ({ images, title, price, ratings, type, isNewCar }) => {
 CarCard.propTypes = {
   images: PropTypes.arrayOf(PropTypes.string).isRequired,
   title: PropTypes.string.isRequired,
-  price: PropTypes.number.isRequired,
+  price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   ratings: PropTypes.arrayOf(
     PropTypes.shape({
       rating: PropTypes.number.isRequired,
@@ -75,6 +88,13 @@ CarCard.propTypes = {
   ).isRequired,
   type: PropTypes.string.isRequired,
   isNewCar: PropTypes.bool.isRequired,
+  categories: PropTypes.arrayOf(
+    PropTypes.shape({
+      categoryType: PropTypes.string.isRequired,
+      price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+      available: PropTypes.bool,
+    })
+  ),
 };
 
 export default CarCard;

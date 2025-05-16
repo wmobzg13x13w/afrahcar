@@ -87,6 +87,8 @@ const Collections = () => {
               ratings={car.ratings}
               type={car.carType}
               isNewCar={car.isNewCar}
+              categories={car.categories}
+              category='courteduree'
             />
           ))}
         </div>

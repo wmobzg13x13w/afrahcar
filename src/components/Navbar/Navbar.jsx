@@ -24,7 +24,7 @@ const Navbar = () => {
             </a>
           </li>
           <li>
-            <a href='/search/courteduree' className='hover:text-orange'>
+            <a href='/search/longueduree' className='hover:text-orange'>
               Location longue durée
             </a>
           </li>

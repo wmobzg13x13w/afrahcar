@@ -11,7 +11,33 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
       const [left, right] = m.value.split("-TUN-");
       return { left, right, available: m.available };
     }) || [{ left: "", right: "", available: true }],
+    // Handle multi-category support
+    categories: car.categories || [
+      {
+        type: car.category,
+        categoryType: car.category, // Keep for backward compatibility with form
+        price: car.price,
+        available: car.available || true,
+      },
+    ],
+    multiCategory: car.categories && car.categories.length > 1 ? true : false,
   });
+
+  // Ensure we have the proper category structure when component mounts
+  useEffect(() => {
+    if (!updatedCar.categories || updatedCar.categories.length === 0) {
+      setUpdatedCar((prev) => ({
+        ...prev,
+        categories: [
+          {
+            categoryType: car.category,
+            price: car.price,
+            available: car.available || true,
+          },
+        ],
+      }));
+    }
+  }, []);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [carTypes, setCarTypes] = useState([]);
@@ -64,6 +90,17 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
           [name === "matriculeLeft" ? "left" : "right"]: value,
         },
       }));
+    } else if (name.startsWith("category-price-")) {
+      // Handle category price changes
+      const categoryIndex = parseInt(name.split("-")[2]);
+      const updatedCategories = [...updatedCar.categories];
+      updatedCategories[categoryIndex].price = value;
+      setUpdatedCar({
+        ...updatedCar,
+        categories: updatedCategories,
+        // Also update legacy price field if this is the first/primary category
+        price: categoryIndex === 0 ? value : updatedCar.price,
+      });
     } else {
       setUpdatedCar({ ...updatedCar, [name]: value });
     }
@@ -72,6 +109,49 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
   // Handle select changes
   const handleSelectChange = (selectedOption, { name }) => {
     setUpdatedCar({ ...updatedCar, [name]: selectedOption.value });
+  };
+
+  // Toggle multi-category mode
+  const toggleMultiCategory = () => {
+    setUpdatedCar({
+      ...updatedCar,
+      multiCategory: !updatedCar.multiCategory,
+    });
+  };
+
+  // Add a new category
+  const addCategory = () => {
+    // Don't add if both categories already exist
+    if (updatedCar.categories.length >= 2) return;
+
+    // Find which category is not already added
+    const existingCategory = updatedCar.categories[0].categoryType;
+    const newCategoryType =
+      existingCategory === "courteduree" ? "longueduree" : "courteduree";
+
+    setUpdatedCar({
+      ...updatedCar,
+      categories: [
+        ...updatedCar.categories,
+        { categoryType: newCategoryType, price: "", available: true },
+      ],
+    });
+  };
+
+  // Remove a category
+  const removeCategory = (index) => {
+    // Don't remove if only one category left
+    if (updatedCar.categories.length <= 1) return;
+
+    const updatedCategories = updatedCar.categories.filter(
+      (_, i) => i !== index
+    );
+    setUpdatedCar({
+      ...updatedCar,
+      categories: updatedCategories,
+      // Update legacy category field if needed
+      category: updatedCategories[0].categoryType,
+    });
   };
 
   // Handle file changes
@@ -138,6 +218,37 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
 
       formData.append("matricules", JSON.stringify(formattedMatricules));
 
+      // Always use the categories array for price information
+      // Make sure all categories have prices
+      const categoriesToSubmit = updatedCar.categories.map((cat) => ({
+        // Map categoryType to type for backend compatibility
+        type: cat.categoryType || cat.type || "courteduree",
+        price: cat.price ? Number(cat.price) : 0, // Ensure price is a number
+        available: cat.available !== undefined ? cat.available : true,
+      }));
+
+      // Ensure we have at least one category
+      if (categoriesToSubmit.length === 0) {
+        categoriesToSubmit.push({
+          categoryType: updatedCar.category || "courteduree",
+          price: Number(updatedCar.price) || 0,
+          available: true,
+        });
+      }
+
+      formData.append("categories", JSON.stringify(categoriesToSubmit));
+      // Also set the legacy price field to the first category's price for backward compatibility
+      // Ensure price is explicitly converted to a number
+      formData.append("price", Number(categoriesToSubmit[0].price));
+
+      // Fix: Ensure category is a string, not an array
+      const categoryValue =
+        categoriesToSubmit[0].type ||
+        categoriesToSubmit[0].categoryType ||
+        "courteduree";
+      // Make sure we're sending a string value for category, not an array
+      formData.append("category", String(categoryValue));
+
       // Handle existing images
       if (!updatedCar.newImages) {
         formData.append("existingImages", JSON.stringify(car.images || []));
@@ -155,7 +266,9 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
           key !== "matricules" &&
           key !== "_id" &&
           key !== "newImages" &&
-          key !== "images"
+          key !== "images" &&
+          key !== "categories" &&
+          key !== "category" // Skip the category field here as we've already handled it above
         ) {
           formData.append(key, updatedCar[key]);
         }
@@ -226,17 +339,121 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
         <form onSubmit={handleSubmit}>
           {/* Category Select Field */}
           <div className='mb-4'>
-            <label className='block text-gray-700 mb-2'>Catégorie</label>
-            <Select
-              name='category'
-              value={categoryOptions.find(
-                (option) => option.value === updatedCar.category
-              )}
-              onChange={handleSelectChange}
-              options={categoryOptions}
-              className='w-full border border-gray-300 rounded-md'
-              required
-            />
+            <div className='flex justify-between items-center'>
+              <label className='block text-gray-700 mb-2'>Catégorie</label>
+              <div className='flex items-center'>
+                <input
+                  type='checkbox'
+                  id='multiCategory'
+                  checked={updatedCar.multiCategory}
+                  onChange={toggleMultiCategory}
+                  className='mr-2'
+                />
+                <label
+                  htmlFor='multiCategory'
+                  className='text-sm text-gray-600'>
+                  Disponible dans plusieurs catégories
+                </label>
+              </div>
+            </div>
+
+            {!updatedCar.multiCategory ? (
+              <>
+                <select
+                  name='category'
+                  value={updatedCar.category}
+                  onChange={(e) => {
+                    // Update both the legacy category field and the categories array
+                    const updatedCategories = [...updatedCar.categories];
+                    updatedCategories[0] = {
+                      ...updatedCategories[0],
+                      categoryType: e.target.value,
+                    };
+                    setUpdatedCar({
+                      ...updatedCar,
+                      category: e.target.value, // Update legacy field
+                      categories: updatedCategories,
+                    });
+                  }}
+                  className='w-full border rounded-md py-2 px-4'
+                  required>
+                  <option value='courteduree'>Courte durée</option>
+                  <option value='longueduree'>Longue durée</option>
+                </select>
+                <div className='mt-4'>
+                  <label className='block text-gray-700 mb-2'>
+                    Prix (DNT/jour)
+                  </label>
+                  <input
+                    type='number'
+                    name='category-price-0'
+                    value={updatedCar.categories[0]?.price || ""}
+                    onChange={(e) => {
+                      // Update price directly in the categories array and legacy price field
+                      const updatedCategories = [...updatedCar.categories];
+                      if (updatedCategories[0]) {
+                        updatedCategories[0].price = e.target.value;
+                        setUpdatedCar({
+                          ...updatedCar,
+                          price: e.target.value, // Update legacy price field
+                          categories: updatedCategories,
+                        });
+                      }
+                    }}
+                    className='w-full border border-gray-300 rounded-md py-2 px-4'
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <div className='space-y-4 border p-3 rounded bg-gray-50'>
+                {updatedCar.categories.map((category, index) => (
+                  <div key={index} className='flex items-center space-x-2'>
+                    <div className='flex-grow'>
+                      <input
+                        type='text'
+                        value={
+                          category.categoryType === "courteduree"
+                            ? "Courte durée"
+                            : "Longue durée"
+                        }
+                        disabled={true} // Can't change category type once added
+                        className='w-full p-2 border rounded'
+                        readOnly
+                      />
+                    </div>
+                    <div className='w-1/3'>
+                      <input
+                        type='number'
+                        name={`category-price-${index}`}
+                        value={category.price}
+                        onChange={handleChange}
+                        placeholder='Prix'
+                        className='w-full p-2 border rounded'
+                        required
+                      />
+                    </div>
+                    {updatedCar.categories.length > 1 && (
+                      <button
+                        type='button'
+                        onClick={() => removeCategory(index)}
+                        className='bg-red-100 text-red-600 p-2 rounded hover:bg-red-200'>
+                        Supprimer
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {updatedCar.categories.length < 2 && (
+                  <button
+                    type='button'
+                    onClick={addCategory}
+                    className='bg-blue-100 text-blue-600 p-2 rounded hover:bg-blue-200 w-full'>
+                    Ajouter une catégorie
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Title Field */}
@@ -415,20 +632,6 @@ const EditCarModal = ({ isOpen, onClose, car, onEdit, fetchCars }) => {
               onChange={handleSelectChange}
               options={airConditionner}
               className='w-full border border-gray-300 rounded-md'
-              required
-            />
-          </div>
-
-          {/* Price Field */}
-          <div className='mb-4'>
-            <label className='block text-gray-700 mb-2'>Prix/Jour</label>
-            <input
-              min={0}
-              type='number'
-              name='price'
-              value={updatedCar.price}
-              onChange={handleChange}
-              className='w-full border border-gray-300 rounded-md py-2 px-4'
               required
             />
           </div>

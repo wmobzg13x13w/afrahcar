@@ -7,27 +7,29 @@ const ManageCars = () => {
   const [cars, setCars] = useState([]);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("courteduree");
+  const [loading, setLoading] = useState(false);
 
   const fetchCars = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(
-        `${process.env.REACT_APP_BASE_URL}cars/getcarsbycategory/${selectedCategory}`
+        `${process.env.REACT_APP_BASE_URL}cars/getcars`
       );
       setCars(response.data);
     } catch (err) {
       setError("Failed to fetch cars");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCars();
-  }, [selectedCategory]);
+  }, []);
 
   const handleAddCar = (newCar) => {
-    if (newCar.category === selectedCategory) {
-      setCars([...cars, newCar]);
-    }
+    // Add all new cars without category filtering
+    setCars([...cars, newCar]);
   };
 
   const handleEditCar = (updatedCar) => {
@@ -43,13 +45,6 @@ const ManageCars = () => {
       <div className='flex justify-between items-center mb-6'>
         <h1 className='text-3xl font-bold'>Gestion des Voitures</h1>
         <div className='flex gap-4'>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className='border rounded-md p-2'>
-            <option value='courteduree'>Courte durée</option>
-            <option value='longueduree'>Longue durée</option>
-          </select>
           <button
             onClick={() => setIsModalOpen(true)}
             className='bg-darkBlue text-white py-2 px-4 rounded-md'>
@@ -77,7 +72,7 @@ const ManageCars = () => {
         onClose={() => setIsModalOpen(false)}
         onSave={handleAddCar}
         fetchCars={fetchCars}
-        category={selectedCategory}
+        category='courteduree'
       />
     </div>
   );

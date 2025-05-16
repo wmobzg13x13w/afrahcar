@@ -362,7 +362,21 @@ const LongueDuree = () => {
                         alt={carDetails.title}
                       />
                       <p>
-                        Prix par jour : {convertPrice(carDetails.price)}
+                        Prix par jour :{" "}
+                        {convertPrice(
+                          carDetails.categories &&
+                            carDetails.categories.length > 0
+                            ? (() => {
+                                const categoryType = urlParams.get("category");
+                                const categoryData = carDetails.categories.find(
+                                  (cat) => cat.categoryType === categoryType
+                                );
+                                return categoryData
+                                  ? categoryData.price
+                                  : carDetails.categories[0].price;
+                              })()
+                            : carDetails.price
+                        )}
                         {currency}
                       </p>
                       <p>
@@ -375,7 +389,9 @@ const LongueDuree = () => {
               </div>
               <div className='bg-darkBlue-dark text-white text-2xl rounded-lg p-4 '>
                 {" "}
-                Total : {convertPrice(calculateTotal())} {currency}
+                Total :{" "}
+                {convertPrice(calculateTotal(urlParams.get("category")))}{" "}
+                {currency}
               </div>
             </div>
           </div>

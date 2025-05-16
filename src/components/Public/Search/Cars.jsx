@@ -68,6 +68,7 @@ const Cars = ({ cars }) => {
               type={car.type}
               images={car.images}
               isNewCar={car.isNewCar}
+              categories={car.categories}
             />
           </div>
         ))}

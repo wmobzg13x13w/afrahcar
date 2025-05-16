@@ -23,6 +23,29 @@ const CarCard = ({ car, onEdit, onDelete, fetchCars }) => {
     }
   };
 
+  // Get category information
+  const getCategories = () => {
+    // Always use the categories array
+    if (car.categories && car.categories.length > 0) {
+      return car.categories;
+    }
+    // If no categories array exists, create one from legacy fields
+    // This is for backward compatibility with older data
+    return [
+      {
+        categoryType: car.category || "courteduree",
+        price: car.price || 0,
+        available: car.available !== undefined ? car.available : true,
+      },
+    ];
+  };
+
+  const categories = getCategories();
+  const categoryLabels = {
+    longueduree: "Longue Durée",
+    courteduree: "Courte Durée",
+  };
+
   return (
     <div className='bg-white p-4 rounded-lg shadow-md'>
       <img
@@ -32,17 +55,37 @@ const CarCard = ({ car, onEdit, onDelete, fetchCars }) => {
       />
       <div className='flex justify-between'>
         <h2 className='text-xl font-bold mb-1'>{car.title}</h2>
-        <h2 className='text-xl font-bold mb-1'>
-          {car.category === "longueduree" ? "Longue Durée" : "Courte Durée"}
-        </h2>
       </div>
       <p className='text-gray-700 text-md mb-2'>{car.type}</p>
+
+      {/* Categories and Prices */}
+      <div className='mb-3 border-t border-b py-2'>
+        <h3 className='font-semibold mb-1'>Catégories:</h3>
+        {categories.map((category, index) => (
+          <div key={index} className='flex justify-between items-center mb-1'>
+            <span className='text-sm'>
+              {categoryLabels[category.type] || category.type}
+            </span>
+            <div className='flex items-center gap-2'>
+              <span className='text-gray-700 font-medium'>
+                {category.price} <strong>DNT/JOUR</strong>
+              </span>
+              <span
+                className={`px-2 py-0.5 text-xs rounded ${
+                  category.available
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}>
+                {category.available ? "Disponible" : "Non disponible"}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className='flex items-center justify-between'>
         <p className='flex items-center gap-2 mb-2 mr-4'>
           <BsPerson /> {car.seats}
-        </p>
-        <p className='text-gray-700 mb-2'>
-          {car.price} <strong>DNT/JOUR</strong>
         </p>
       </div>
       <div className='flex justify-end gap-2'>
@@ -87,13 +130,31 @@ CarCard.propTypes = {
     _id: PropTypes.string.isRequired,
     title: PropTypes.string.isRequired,
     images: PropTypes.arrayOf(PropTypes.string).isRequired,
-    category: PropTypes.string.isRequired,
     type: PropTypes.string.isRequired,
     seats: PropTypes.number.isRequired,
-    price: PropTypes.number.isRequired,
-    isAvailable: PropTypes.bool.isRequired,
+    // Legacy fields (optional for backward compatibility)
+    category: PropTypes.string,
+    price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    available: PropTypes.bool,
+    // New multi-category structure (required)
+    categories: PropTypes.arrayOf(
+      PropTypes.shape({
+        categoryType: PropTypes.string.isRequired,
+        price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+          .isRequired,
+        available: PropTypes.bool,
+      })
+    ),
+    // Support for matricules
+    matricules: PropTypes.arrayOf(
+      PropTypes.shape({
+        value: PropTypes.string.isRequired,
+        available: PropTypes.bool,
+      })
+    ),
   }).isRequired,
   onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
   fetchCars: PropTypes.func.isRequired,
 };
 

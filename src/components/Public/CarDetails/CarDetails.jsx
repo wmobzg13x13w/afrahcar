@@ -30,6 +30,7 @@ const CarDetails = ({
   fetchCarDetails,
   garantie,
   airConditionner,
+  categories,
 }) => {
   const location = useLocation();
 
@@ -107,10 +108,37 @@ const CarDetails = ({
 
           <p className='text-3xl mb-4 flex  justify-between items-center'>
             <p>
-              <strong>{convertPrice(price)}</strong> {currency}/jour
+              {categories && categories.length > 0 ? (
+                // Display price based on URL category parameter if available
+                <>
+                  <strong>
+                    {convertPrice(
+                      categories.find(
+                        (cat) => cat.categoryType === urlParams.get("category")
+                      )
+                        ? categories.find(
+                            (cat) =>
+                              cat.categoryType === urlParams.get("category")
+                          ).price
+                        : categories[0].price
+                    )}
+                  </strong>{" "}
+                  {currency}/jour
+                </>
+              ) : (
+                // Fallback to legacy price field
+                <>
+                  <strong>{convertPrice(price)}</strong> {currency}/jour
+                </>
+              )}
             </p>
             <Link
-              to={`/reservation/${_id}?${urlParams.toString()}`}
+              to={`/reservation/${_id}?${urlParams.toString()}&category=${
+                urlParams.get("category") ||
+                (categories && categories.length > 0
+                  ? categories[0].categoryType
+                  : "courteduree")
+              }`}
               className='text-white'>
               <button className='bg-darkBlue text-white py-2 px-6 rounded-md hover:bg-darkBlue-light text-lg'>
                 Réserver

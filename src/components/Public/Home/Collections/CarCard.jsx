@@ -2,12 +2,37 @@ import React, { useContext } from "react";
 import PropTypes from "prop-types";
 import { CurrencyContext } from "../../../../contexts/Currencycontext";
 
-const CarCard = ({ image, title, ratings, price, isNewCar }) => {
+const CarCard = ({
+  image,
+  title,
+  ratings,
+  price,
+  isNewCar,
+  categories,
+  category = "courteduree",
+}) => {
   const { currency, convertPrice } = useContext(CurrencyContext);
   const averageRating =
     ratings.length > 0
       ? ratings.reduce((sum, { rating }) => sum + rating, 0) / ratings.length
       : 0;
+
+  // Get the appropriate price based on category
+  const getPrice = () => {
+    if (categories && categories.length > 0) {
+      // Try to find the matching category
+      const categoryData = categories.find(
+        (cat) => cat.categoryType === category
+      );
+      if (categoryData) {
+        return categoryData.price;
+      }
+      // If category not found, use the first category's price
+      return categories[0].price;
+    }
+    // Fallback to legacy price field
+    return price;
+  };
 
   return (
     <div className='relative bg-white rounded-lg shadow-lg overflow-hidden'>
@@ -35,7 +60,7 @@ const CarCard = ({ image, title, ratings, price, isNewCar }) => {
           </div>
           <div className='flex justify-between items-center mb-2'>
             <p className='text-gray-700 font-semibold'>
-              {convertPrice(price)} {currency}/Jour
+              {convertPrice(getPrice())} {currency}/Jour
             </p>
           </div>
         </div>
@@ -52,8 +77,17 @@ CarCard.propTypes = {
       rating: PropTypes.number.isRequired,
     })
   ).isRequired,
-  price: PropTypes.number.isRequired,
+  price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   isNewCar: PropTypes.bool.isRequired,
+  categories: PropTypes.arrayOf(
+    PropTypes.shape({
+      categoryType: PropTypes.string.isRequired,
+      price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+        .isRequired,
+      available: PropTypes.bool,
+    })
+  ),
+  category: PropTypes.string,
 };
 
 export default CarCard;

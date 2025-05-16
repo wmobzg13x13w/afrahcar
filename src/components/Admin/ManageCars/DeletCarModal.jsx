@@ -32,7 +32,7 @@ const DeleteCarModal = ({ isOpen, onClose, car, onDelete, fetchCars }) => {
       <div className='bg-white p-6 rounded-lg shadow-lg w-96'>
         <h2 className='text-2xl font-bold mb-4'>Delete Car</h2>
         {error && <div className='text-red-500 mb-4'>{error}</div>}
-        <p className='mb-4'>Are you sure you want to delete {car.name}?</p>
+        <p className='mb-4'>Are you sure you want to delete {car.title}?</p>
         <div className='flex justify-end'>
           <button
             type='button'
@@ -59,11 +59,29 @@ DeleteCarModal.propTypes = {
   car: PropTypes.shape({
     _id: PropTypes.string.isRequired,
     images: PropTypes.arrayOf(PropTypes.string).isRequired,
-    name: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired, // Car title is required
     type: PropTypes.string.isRequired,
-    price: PropTypes.number.isRequired,
     seats: PropTypes.number.isRequired,
-    engine: PropTypes.string.isRequired,
+    // Legacy fields (optional for backward compatibility)
+    price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    category: PropTypes.string,
+    available: PropTypes.bool,
+    // Multi-category structure (required)
+    categories: PropTypes.arrayOf(
+      PropTypes.shape({
+        categoryType: PropTypes.string.isRequired,
+        price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+          .isRequired,
+        available: PropTypes.bool,
+      })
+    ).isRequired,
+    // Support for matricules
+    matricules: PropTypes.arrayOf(
+      PropTypes.shape({
+        value: PropTypes.string.isRequired,
+        available: PropTypes.bool,
+      })
+    ),
   }).isRequired,
   onDelete: PropTypes.func.isRequired,
   fetchCars: PropTypes.func.isRequired,
