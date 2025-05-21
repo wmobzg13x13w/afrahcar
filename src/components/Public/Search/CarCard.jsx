@@ -1,22 +1,41 @@
 import React, { useContext } from "react";
 import PropTypes from "prop-types";
 import { CurrencyContext } from "../../../contexts/Currencycontext";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 
-const CarCard = ({ images, title, price, ratings, type, isNewCar, categories }) => {
+const CarCard = ({
+  images,
+  title,
+  price,
+  ratings,
+  type,
+  isNewCar,
+  categories,
+}) => {
   const image = process.env.REACT_APP_BASE_URL + "uploads/" + images[0];
   const { currency, convertPrice } = useContext(CurrencyContext);
-  const { category } = useParams();
+  const { category: paramCategory } = useParams();
+  const location = useLocation();
+  const urlParams = new URLSearchParams(location.search);
+  const queryCategory = urlParams.get("category");
+
+  // Get category from URL params, query params, or path segment
+  const category = paramCategory || queryCategory;
+
+  // Extract category from path if not in params or query
+  const pathSegments = location.pathname.split("/");
+  const pathCategory = pathSegments[pathSegments.length - 1];
+  const effectiveCategory =
+    category || (pathCategory !== "search" ? pathCategory : null);
 
   return (
     <div className='relative bg-grey rounded-3xl shadow-lg w-full max-w-xs sm:max-w-sm mx-auto'>
       {/* Badge */}
-      {isNewCar &&(
-      <div class='absolute top-0 right-0 bg-orange-light text-white text-xs font-semibold uppercase tracking-wide  px-3 py-1 shadow-lg rounded-lg rounded-tl-none rounded-br-none'>
-      {"Nouvelle"}
-    </div>
+      {isNewCar && (
+        <div class='absolute top-0 right-0 bg-orange-light text-white text-xs font-semibold uppercase tracking-wide  px-3 py-1 shadow-lg rounded-lg rounded-tl-none rounded-br-none'>
+          {"Nouvelle"}
+        </div>
       )}
-
 
       {/* Car Image */}
       <img
@@ -59,15 +78,28 @@ const CarCard = ({ images, title, price, ratings, type, isNewCar, categories }) 
             <p className='text-gray-700 text-sm sm:text-base'>
               {categories && categories.length > 0 ? (
                 // Display price based on category if available
-                categories.find(cat => cat.categoryType === category) ? (
-                  <>{convertPrice(categories.find(cat => cat.categoryType === category).price)} {currency}/Day</>
+                categories.find(
+                  (cat) => cat.categoryType === effectiveCategory
+                ) ? (
+                  <>
+                    {convertPrice(
+                      categories.find(
+                        (cat) => cat.categoryType === effectiveCategory
+                      ).price
+                    )}{" "}
+                    {currency}/Day
+                  </>
                 ) : (
                   // Fallback to first category price if selected category not found
-                  <>{convertPrice(categories[0].price)} {currency}/Day</>
+                  <>
+                    {convertPrice(categories[0].price)} {currency}/Day
+                  </>
                 )
               ) : (
                 // Fallback to legacy price field
-                <>{convertPrice(price)} {currency}/Day</>
+                <>
+                  {convertPrice(price)} {currency}/Day
+                </>
               )}
             </p>
           </div>
@@ -91,7 +123,8 @@ CarCard.propTypes = {
   categories: PropTypes.arrayOf(
     PropTypes.shape({
       categoryType: PropTypes.string.isRequired,
-      price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+      price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+        .isRequired,
       available: PropTypes.bool,
     })
   ),

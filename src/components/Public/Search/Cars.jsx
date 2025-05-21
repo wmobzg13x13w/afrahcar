@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import CarCard from "./CarCard";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -14,6 +14,18 @@ const Cars = ({ cars }) => {
   const dropoffDateParam = urlParams.get("dropoffDate");
   const pickupParam = urlParams.get("pickup");
   const dropoffParam = urlParams.get("dropoff");
+
+  // Extract category from URL path
+  const [pathCategory, setPathCategory] = useState("");
+
+  useEffect(() => {
+    // Extract category from path (e.g., /search/longueduree)
+    const pathSegments = location.pathname.split("/");
+    const categoryFromPath = pathSegments[pathSegments.length - 1];
+    if (categoryFromPath && categoryFromPath !== "search") {
+      setPathCategory(categoryFromPath);
+    }
+  }, [location.pathname]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -37,7 +49,7 @@ const Cars = ({ cars }) => {
     }
   };
 
-  const handleCardClick = (carId) => {
+  const handleCardClick = (car) => {
     if (
       !pickupDateParam ||
       !dropoffDateParam ||
@@ -50,7 +62,21 @@ const Cars = ({ cars }) => {
       return;
     }
 
-    navigate(`/car/${carId}?${urlParams.toString()}`);
+    // Use category from path or query parameter
+    let categoryParam = urlParams.get("category");
+
+    // If no category in query params but we have one from the path, use that
+    if (!categoryParam && pathCategory) {
+      categoryParam = pathCategory;
+      urlParams.set("category", pathCategory);
+    }
+
+    // If still no category but car has categories, use the first one
+    if (!categoryParam && car.categories && car.categories.length > 0) {
+      urlParams.set("category", car.categories[0].categoryType);
+    }
+
+    navigate(`/car/${car._id}?${urlParams.toString()}`);
   };
 
   return (
@@ -58,7 +84,7 @@ const Cars = ({ cars }) => {
       {error && <div className='text-[red] mb-4'>{error}</div>}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
         {currentItems.map((car) => (
-          <div key={car.id} onClick={() => handleCardClick(car._id)}>
+          <div key={car.id} onClick={() => handleCardClick(car)}>
             <CarCard
               key={car.id}
               image={car.image}
@@ -105,15 +131,26 @@ Cars.propTypes = {
   cars: PropTypes.arrayOf(
     PropTypes.shape({
       id: PropTypes.string.isRequired,
+      _id: PropTypes.string.isRequired,
       title: PropTypes.string.isRequired,
-      image: PropTypes.string.isRequired,
+      image: PropTypes.string,
+      images: PropTypes.arrayOf(PropTypes.string),
       price: PropTypes.number.isRequired,
       ratings: PropTypes.arrayOf(
         PropTypes.shape({
           rating: PropTypes.number.isRequired,
         })
       ).isRequired,
-      isNew: PropTypes.bool.isRequired,
+      type: PropTypes.string.isRequired,
+      isNewCar: PropTypes.bool,
+      categories: PropTypes.arrayOf(
+        PropTypes.shape({
+          categoryType: PropTypes.string.isRequired,
+          price: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+            .isRequired,
+          available: PropTypes.bool,
+        })
+      ),
     })
   ).isRequired,
 };

@@ -33,8 +33,10 @@ const CarDetails = ({
   categories,
 }) => {
   const location = useLocation();
-
   const urlParams = new URLSearchParams(location.search);
+
+  console.log(categories);
+  const category = urlParams.get("category");
 
   const [selectedImage, setSelectedImage] = useState(images[0]);
   const { currency, convertPrice } = useContext(CurrencyContext);
@@ -109,19 +111,21 @@ const CarDetails = ({
           <p className='text-3xl mb-4 flex  justify-between items-center'>
             <p>
               {categories && categories.length > 0 ? (
-                // Display price based on URL category parameter if available
+                // Display price based on effective category (URL param or path segment)
                 <>
                   <strong>
-                    {convertPrice(
-                      categories.find(
-                        (cat) => cat.categoryType === urlParams.get("category")
-                      )
-                        ? categories.find(
-                            (cat) =>
-                              cat.categoryType === urlParams.get("category")
-                          ).price
-                        : categories[0].price
-                    )}
+                    {(() => {
+                      // Find the category that matches the effective category
+                      const categoryMatch = categories.find(
+                        (cat) => cat.type === category
+                      );
+                      // If found, use its price, otherwise fallback to first category
+                      return convertPrice(
+                        categoryMatch
+                          ? categoryMatch.price
+                          : categories[0].price
+                      );
+                    })()}
                   </strong>{" "}
                   {currency}/jour
                 </>
@@ -133,12 +137,7 @@ const CarDetails = ({
               )}
             </p>
             <Link
-              to={`/reservation/${_id}?${urlParams.toString()}&category=${
-                urlParams.get("category") ||
-                (categories && categories.length > 0
-                  ? categories[0].categoryType
-                  : "courteduree")
-              }`}
+              to={`/reservation/${_id}?${urlParams.toString()}`}
               className='text-white'>
               <button className='bg-darkBlue text-white py-2 px-6 rounded-md hover:bg-darkBlue-light text-lg'>
                 Réserver

@@ -158,24 +158,40 @@ const RentingCard = ({ renting }) => {
             <DetailItem
               label='Type de paiement'
               value={
-                renting.paymentType === "online"
-                  ? "En ligne"
-                  : renting.paymentType === "onsite"
-                  ? "Sur place"
-                  : "Non spécifié"
+                <>
+                  {renting.paymentType === "online"
+                    ? "En ligne"
+                    : renting.paymentType === "onsite"
+                    ? "Sur place"
+                    : "Non spécifié"}
+                  {renting.paymentType === "online" && renting.paymentPercentage && (
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {renting.paymentPercentage}%
+                    </span>
+                  )}
+                </>
               }
             />
 
             <DetailItem
               label='Statut du paiement'
               value={
-                renting.paymentStatus === "paid"
-                  ? "Payé"
-                  : renting.paymentStatus === "pending"
-                  ? "En attente"
-                  : renting.paymentStatus === "failed"
-                  ? "Échoué"
-                  : "Inconnu"
+                <>
+                  {renting.paymentStatus === "paid"
+                    ? "Payé"
+                    : renting.paymentStatus === "partially_paid"
+                    ? "Partiellement payé"
+                    : renting.paymentStatus === "pending"
+                    ? "En attente"
+                    : renting.paymentStatus === "failed"
+                    ? "Échoué"
+                    : "Inconnu"}
+                  {(renting.paymentStatus === "paid" || renting.paymentStatus === "partially_paid") && renting.paidAmount > 0 && (
+                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                      {renting.paidAmount} DT
+                    </span>
+                  )}
+                </>
               }
             />
           </div>

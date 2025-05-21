@@ -18,6 +18,7 @@ const LongueDuree = () => {
   const dropoffDateParam = urlParams.get("dropoffDate");
   const pickupParam = urlParams.get("pickup");
   const dropoffParam = urlParams.get("dropoff");
+  const category = urlParams.get("category");
 
   const { currency, convertPrice } = useContext(CurrencyContext);
 
@@ -34,7 +35,7 @@ const LongueDuree = () => {
     dropoffLocation: dropoffParam,
     numVol: "",
     siegeAuto: false,
-    paymentType: "",
+    paymentPercentage: 100,
   });
 
   const [carDetails, setCarDetails] = useState(null);
@@ -81,15 +82,19 @@ const LongueDuree = () => {
     e.preventDefault();
     setisLoading(true);
 
-    const { category } = carDetails;
+    const categoryValue = urlParams.get("category");
+    const totalAmount = calculateTotal();
+    const paidAmount = (totalAmount * formData.paymentPercentage) / 100;
 
     const data = {
       ...formData,
       startDate: pickupDateParam,
       endDate: dropoffDateParam,
-      category,
+      category: categoryValue,
       carModel: carid,
-      totalPrice: calculateTotal(),
+      totalPrice: totalAmount,
+      paidAmount: paidAmount,
+      paymentType: "online", // Adding payment type here to ensure backend compatibility
     };
 
     try {
@@ -101,10 +106,10 @@ const LongueDuree = () => {
       const resData = response.data;
 
       if (resData.redirectTo) {
-        // Online payment: redirect to ClicToPay form
+        // Redirect to ClicToPay form
         window.location.href = resData.redirectTo;
       } else {
-        // Onsite payment or immediate success
+        // Immediate success
         navigate("/confirmation");
       }
     } catch (error) {
@@ -124,8 +129,10 @@ const LongueDuree = () => {
     const timeDifference = dropoffDate - pickupDate;
 
     const days = Math.ceil(timeDifference / (1000 * 60 * 60 * 24)) + 1;
-
-    return days * carDetails.price;
+    const catprice = carDetails.categories.find(
+      (cat) => cat.type === category
+    ).price;
+    return days * catprice;
   };
 
   if (loading) {
@@ -291,19 +298,17 @@ const LongueDuree = () => {
                 </div>
                 <div className='mb-4'>
                   <label className='block text-gray-700 font-semibold mb-2'>
-                    Mode de paiement
+                    Pourcentage de paiement
                   </label>
                   <select
-                    name='paymentType'
-                    value={formData.paymentType}
+                    name='paymentPercentage'
+                    value={formData.paymentPercentage}
                     onChange={handleChange}
                     className='w-full border border-gray-300 rounded-md py-2 px-4'
                     required>
-                    <option value=''>
-                      -- Sélectionnez un mode de paiement --
-                    </option>
-                    <option value='onsite'>Paiement sur place</option>
-                    <option value='online'>Paiement en ligne</option>
+                    <option value='30'>Payer 30% maintenant</option>
+                    <option value='50'>Payer 50% maintenant</option>
+                    <option value='100'>Payer 100% maintenant</option>
                   </select>
                 </div>
 
@@ -336,7 +341,7 @@ const LongueDuree = () => {
                         })}
                       </p>
                       <p className='font-semibold'>
-                        Lieu de départ : {formData.pickupLocation?.label}
+                        Lieu de départ : {pickupParam}
                       </p>
                       <p>
                         À :{" "}
@@ -350,7 +355,7 @@ const LongueDuree = () => {
                         )}
                       </p>
                       <p className='font-semibold'>
-                        Lieu de retour : {formData.dropoffLocation?.label}
+                        Lieu de retour : {dropoffParam}
                       </p>
                       <img
                         className='object-fit aspect-ratio-16/9 w-full rounded-md mt-4 p-8'
@@ -369,7 +374,7 @@ const LongueDuree = () => {
                             ? (() => {
                                 const categoryType = urlParams.get("category");
                                 const categoryData = carDetails.categories.find(
-                                  (cat) => cat.categoryType === categoryType
+                                  (cat) => cat.type === categoryType
                                 );
                                 return categoryData
                                   ? categoryData.price
@@ -389,9 +394,12 @@ const LongueDuree = () => {
               </div>
               <div className='bg-darkBlue-dark text-white text-2xl rounded-lg p-4 '>
                 {" "}
-                Total :{" "}
-                {convertPrice(calculateTotal(urlParams.get("category")))}{" "}
+                Total : {convertPrice(calculateTotal())}{" "}
                 {currency}
+              </div>
+              <div className='bg-darkBlue text-white text-xl rounded-lg p-4 mt-2'>
+                Montant à payer maintenant : {convertPrice((calculateTotal() * formData.paymentPercentage) / 100)}{" "}
+                {currency} ({formData.paymentPercentage}%)
               </div>
             </div>
           </div>

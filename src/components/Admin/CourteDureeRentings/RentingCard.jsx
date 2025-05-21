@@ -91,11 +91,18 @@ const RentingCard = ({ renting }) => {
           <p className='text-gray-700'>
             <strong>Type de paiement:</strong>{" "}
             {renting.paymentType === "online" ? "En ligne" : "Sur place"}
+            {renting.paymentType === "online" && renting.paymentPercentage && (
+              <span className='ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded'>
+                {renting.paymentPercentage}%
+              </span>
+            )}
           </p>
           <p
             className={`text-gray-700 font-semibold ${
               renting.paymentStatus === "paid"
                 ? "text-green-600"
+                : renting.paymentStatus === "partially_paid"
+                ? "text-blue-600"
                 : renting.paymentStatus === "pending"
                 ? "text-yellow-600"
                 : "text-red-600"
@@ -103,9 +110,18 @@ const RentingCard = ({ renting }) => {
             <strong>Statut du paiement:</strong>{" "}
             {renting.paymentStatus === "paid"
               ? "Payé"
+              : renting.paymentStatus === "partially_paid"
+              ? "Partiellement payé"
               : renting.paymentStatus === "pending"
               ? "En attente"
               : "Échoué"}
+            {(renting.paymentStatus === "paid" ||
+              renting.paymentStatus === "partially_paid") &&
+              renting.paidAmount > 0 && (
+                <span className='ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded'>
+                  {renting.paidAmount} DT
+                </span>
+              )}
           </p>
         </div>
       </div>
